@@ -39,5 +39,5 @@ jobs:
           echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           cd /home/ubuntu/app
           # docker-compose pull
-          # docker-compose down
+          docker-compose down
           docker-compose up -d
