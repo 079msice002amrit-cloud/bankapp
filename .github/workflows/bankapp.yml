@@ -37,7 +37,7 @@ jobs:
         options: "-o StrictHostKeyChecking=no"
         script: |
           echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          cd bankapp
+          cd /home/ubuntu/app
           # docker-compose pull
           # docker-compose down
           docker-compose up -d
