@@ -1,12 +1,5 @@
 # Stage 1
-
 FROM maven:3.8.3-openjdk-17 AS build
-
-# Add maintainer, so that new user will understand who had written this Dockerfile
-LABEL maintainer="shresthasaksham08@gmail.com"
-
-# Add labels to the image to filter out if we have multiple application running
-LABEL app=bankapp
 
 # Set working directory
 WORKDIR /src
@@ -20,7 +13,7 @@ RUN mvn clean install -DskipTests=true
 # Stage 2
 
 # Import small size java image
-FROM openjdk:17-alpine AS deployer
+FROM eclipse-temurin:17-alpine AS deployer
 
 # Copy build from stage 1 (builder)
 COPY --from=build /src/target/*.jar /src/target/bankapp.jar
