@@ -1,0 +1,48 @@
+name: Deploy Employee Management App
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup jdk
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Build maven
+      run: mvn clean package -DskipTests
+
+    - name: List files
+      run: ls -l target
+
+    - name: Copy Jar to deployment server
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.EC2_PUBLIC_IP_DEV }}
+        username: ubuntu
+        key: ${{ secrets.AWS_SSH_KEY }}
+        source: "target/*.jar"
+        target: "/home/ubuntu/bankapp"
+    
+    - name: Start/Restart Application
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_PUBLIC_IP_DEV }}
+        username: ubuntu
+        key: ${{ secrets.AWS_SSH_KEY }}
+        options: "-o StrictHostKeyChecking=no"
+        script: |
+          cd /home/ubuntu/bankapp/target
+          sudo systemctl start bank-app.service
+          sudo systemctl status bank-app.service

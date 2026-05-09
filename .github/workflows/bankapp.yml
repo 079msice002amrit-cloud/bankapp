@@ -1,0 +1,43 @@
+name: Build and Deploy backend app to AWS EC2
+
+on:
+  push:
+    branches:
+      - feature
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Log in to DockerHub
+    - name: Log in to dockerhub
+      run: |
+        echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      
+    # Build and Push the Docker image
+    - name: Build and Push Docker Image
+      run: |
+        BRANCH_NAME=${{ github.ref_name }}
+        docker build -t bankapp -f Dockerfile .
+        docker tag bankapp:latest ${{ secrets.DOCKERHUB_USERNAME }}/bankapp:$BRANCH_NAME
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/bankapp:$BRANCH_NAME
+
+    # Deploy on AWS EC2
+    - name: Deploy on AWS EC2
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_PUBLIC_IP_DEV }}
+        username: ubuntu
+        key: ${{ secrets.AWS_SSH_KEY }}
+        options: "-o StrictHostKeyChecking=no"
+        script: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          cd bankapp
+          # docker-compose pull
+          # docker-compose down
+          docker-compose up -d

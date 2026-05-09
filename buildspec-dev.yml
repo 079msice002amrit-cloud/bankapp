@@ -1,0 +1,37 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Login successful.
+
+  build:
+    commands:
+      - echo Extracting branch name...
+      - BRANCH_NAME=$(echo $CODEBUILD_WEBHOOK_HEAD_REF | sed 's/refs\/heads\///')  # Extract the branch name
+      - echo Building the Docker image for branch $BRANCH_NAME...
+      - docker build -t bankapp:latest -f Dockerfile-dev .  # Tag with branch name
+      - echo Tagging the Docker image...
+      - docker tag bankapp:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$BRANCH_NAME
+
+  post_build:
+    commands:
+      - echo Pushing the Docker image...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$BRANCH_NAME
+      - echo "Fetching SSH private key..."
+      - aws ssm get-parameter --name /cicd/ssh --with-decryption --query "Parameter.Value" --output text > /tmp/ssh-key.pem
+      - chmod 600 /tmp/ssh-key.pem
+
+      - echo "Connecting to EC2 and deploying the new image..."
+      - |
+        ssh -o StrictHostKeyChecking=no -i /tmp/ssh-key.pem ubuntu@34.239.124.41 << 'EOF'
+        echo "Connected to EC2"
+        aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com        
+        cd /home/ubuntu/bankapp
+        # docker-compose down
+        docker-compose up -d
+        EOF
+
+      - echo "Deployment complete."
