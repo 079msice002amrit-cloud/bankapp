@@ -3,7 +3,7 @@ name: Build and Deploy backend app to AWS EC2
 on:
   push:
     branches:
-      - feature
+      - main
 
 jobs:
   build-deploy:
@@ -23,7 +23,7 @@ jobs:
     - name: Build and Push Docker Image
       run: |
         BRANCH_NAME=${{ github.ref_name }}
-        docker build -t bankapp -f Dockerfile .
+        docker build -t bankapp .
         docker tag bankapp:latest ${{ secrets.DOCKERHUB_USERNAME }}/bankapp:$BRANCH_NAME
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/bankapp:$BRANCH_NAME
 
@@ -33,7 +33,7 @@ jobs:
       with:
         host: ${{ secrets.EC2_PUBLIC_IP_DEV }}
         username: ubuntu
-        key: ${{ secrets.AWS_SSH_KEY }}
+        key: ${{ secrets.SSH_KEY }}
         options: "-o StrictHostKeyChecking=no"
         script: |
           echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
