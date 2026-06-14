@@ -27,8 +27,8 @@ jobs:
         docker tag bankapp:latest ${{ secrets.DOCKERHUB_USERNAME }}/bankapp:$BRANCH_NAME
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/bankapp:$BRANCH_NAME
 
-    # Deploy on AWS EC2
-    - name: Deploy on AWS EC2
+    # Deploy application
+    - name: Deploy application
       uses: appleboy/ssh-action@v0.1.6
       with:
         host: ${{ secrets.EC2_PUBLIC_IP_DEV }}
@@ -36,6 +36,5 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         options: "-o StrictHostKeyChecking=no"
         script: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          cd /home/ubuntu/app
-          docker-compose up -d
+          cd /home/ubuntu/playbooks
+          ansible-playbook deploy-bankapp.yml
